@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recomendações de Notícias</title>
+    <script>
+        async function fetchNews() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                const loginResponse = await fetch("/auth/login", { method: "POST" });
+                const loginData = await loginResponse.json();
+                localStorage.setItem("token", loginData.access_token);
+            }
+            
+            const userId = 1;
+            const response = await fetch(`/recommendations/${userId}`, {
+                headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
+            });
+            const news = await response.json();
+            
+            const list = document.getElementById("news-list");
+            list.innerHTML = "";
+            news.forEach(n => {
+                const li = document.createElement("li");
+                li.textContent = n;
+                list.appendChild(li);
+            });
+        }
+        window.onload = fetchNews;
+    </script>
+</head>
+<body>
+    <h1>Recomendações de Notícias</h1>
+    <ul id="news-list"></ul>
+</body>
+</html>
