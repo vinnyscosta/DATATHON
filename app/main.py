@@ -17,10 +17,12 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(recommendations.router)
 
+
 # Teste uma rota simples
 @app.get("/")
 def root():
     return {"message": "API is running"}
+
 
 # Configuração de templates
 templates = Jinja2Templates(directory="app/templates")

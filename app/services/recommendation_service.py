@@ -5,7 +5,7 @@ from typing import List
 
 
 def recommend_articles(user_id: int, db: Session) -> List[str]:
-    user_history = db.query(UserHistory).filter(UserHistory.user_id == user_id).all()
+    user_history = db.query(UserHistory).filter(UserHistory.user_id == user_id).all()  # noqa
     if not user_history:
         return ["Artigo Popular 1", "Artigo Popular 2", "Artigo Popular 3"]
     all_articles = db.query(Article).all()
