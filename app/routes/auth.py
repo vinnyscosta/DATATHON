@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
 import jwt
-from jwt import ExpiredSignatureError, InvalidTokenError
+# from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 # Configuração do JWT
 SECRET_KEY = "mysecretkey"
@@ -30,13 +30,13 @@ def login():
 # Middleware para verificar token
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials  # Obtém o token Bearer do cabeçalho
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")  # Retorna o usuário autenticado
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expirado")
-    except InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+    # try:
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    return payload.get("sub")  # Retorna o usuário autenticado
+    # except ExpiredSignatureError:
+    #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expirado")
+    # except InvalidTokenError:
+    #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
 
 # Rota protegida usando o token JWT
 @router.get("/user/me")
