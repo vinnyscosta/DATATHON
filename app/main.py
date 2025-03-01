@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-from app.routes import recommendations, auth
+from app.routes import recommendations
 
 app = FastAPI()
 
+# Configuração de CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,15 +14,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inclui as rotas
-app.include_router(auth.router)
-app.include_router(recommendations.router)
+# Incluir rotas
+# app.include_router(auth.router, prefix="/auth", tags=["Autenticação"])
+# app.include_router(users.router, prefix="/users", tags=["Usuários"])
+# app.include_router(articles.router, prefix="/api", tags=["Notícias"])
+app.include_router(recommendations.router, prefix="/recommendations", tags=["Recomendações"])
 
 
-# Teste uma rota simples
 @app.get("/")
 def root():
-    return {"message": "API is running"}
+    return {"message": "API rodando com SQLite!"}
 
 
 # Configuração de templates

@@ -1,17 +1,15 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
+from typing import List, Dict, Any
 from app.services.recommendation_service import recommend_articles
-from app.models.database import get_db
-from app.routes.auth import get_current_user
-from typing import List
 
 router = APIRouter()
 
 
-@router.get("/recommendations/{user_id}", response_model=List[str])
-def get_recommendations(
-    user_id: int,
-    db: Session = Depends(get_db),
-    user: str = Depends(get_current_user)
-):
-    return recommend_articles(user_id, db)
+@router.get("/recommendations/{user_id}", response_model=List[Dict[str, Any]])
+def get_recommendations(user_id: str):
+    recommendations = recommend_articles(user_id)
+
+    if not recommendations:
+        raise HTTPException(status_code=404, detail="Nenhuma recomendação encontrada para este usuário")
+
+    return recommendations

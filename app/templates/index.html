@@ -1,35 +1,151 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <title>Recomendações de Notícias</title>
-    <script>
-        async function fetchNews() {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                const loginResponse = await fetch("/auth/login", { method: "POST" });
-                const loginData = await loginResponse.json();
-                localStorage.setItem("token", loginData.access_token);
-            }
-            
-            const userId = 1;
-            const response = await fetch(`/recommendations/${userId}`, {
-                headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
-            });
-            const news = await response.json();
-            
-            const list = document.getElementById("news-list");
-            list.innerHTML = "";
-            news.forEach(n => {
-                const li = document.createElement("li");
-                li.textContent = n;
-                list.appendChild(li);
-            });
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Notícias</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #FFFFFF;
+            margin: 0;
+            padding: 0;
         }
-        window.onload = fetchNews;
-    </script>
+        .header {
+            background-color: #D71920;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .news-container {
+            width: 60%;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-bottom: 2px solid #D71920;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .news-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #222;
+        }
+        .news-body {
+            font-size: 16px;
+            color: #444;
+            white-space: pre-wrap;
+        }
+        .news-link {
+            color: #D71920;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .news-link:hover {
+            text-decoration: underline;
+        }
+        .form-container {
+            width: 60%;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        input, textarea, button {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #D71920;
+            color: white;
+            font-weight: bold;
+            border: none;
+        }
+    </style>
 </head>
 <body>
-    <h1>Recomendações de Notícias</h1>
-    <ul id="news-list"></ul>
+    <div class="header">📰 Portal de Notícias</div>
+
+    <!-- Formulário para cadastrar notícias -->
+    <div class="form-container">
+        <h2>Cadastrar Notícia</h2>
+        <input type="text" id="title" placeholder="Título da Notícia" required>
+        <textarea id="content" placeholder="Conteúdo da Notícia" rows="5" required></textarea>
+        <button onclick="postNews()">Cadastrar</button>
+    </div>
+
+    <!-- Lista de notícias recomendadas -->
+    <div id="news-list"></div>
+
+    <script>
+        // Simulação de ID do usuário (em produção, pode vir do login)
+        const userId = "exemplo_usuario";
+
+        // Função para buscar recomendações da API
+        async function fetchRecommendations() {
+            try {
+                const response = await fetch(`/recommendations/${userId}`);
+                if (!response.ok) {
+                    throw new Error("Erro ao buscar recomendações.");
+                }
+
+                const recommendations = await response.json();
+                const newsList = document.getElementById("news-list");
+                newsList.innerHTML = "<h2>Recomendações de Notícias</h2>";
+
+                recommendations.forEach(n => {
+                    const newsDiv = document.createElement("div");
+                    newsDiv.classList.add("news-container");
+
+                    newsDiv.innerHTML = `
+                        <div class="news-title">${n.title}</div>
+                        <div class="news-body">${n.body.substring(0, 300)}...</div>
+                        <a class="news-link" href="${n.url}" target="_blank">🔗 Leia mais</a>
+                    `;
+
+                    newsList.appendChild(newsDiv);
+                });
+            } catch (error) {
+                console.error("Erro ao carregar recomendações:", error);
+            }
+        }
+
+        // Função para cadastrar uma nova notícia na API
+        async function postNews() {
+            const title = document.getElementById("title").value;
+            const content = document.getElementById("content").value;
+
+            if (!title || !content) {
+                alert("Preencha todos os campos!");
+                return;
+            }
+
+            try {
+                const response = await fetch("/articles", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title, content })
+                });
+
+                if (response.ok) {
+                    alert("Notícia cadastrada com sucesso!");
+                    fetchRecommendations(); // Atualiza a lista de notícias
+                } else {
+                    throw new Error("Erro ao cadastrar notícia.");
+                }
+            } catch (error) {
+                console.error("Erro ao cadastrar notícia:", error);
+                alert("Erro ao cadastrar notícia.");
+            }
+        }
+
+        // Carregar recomendações ao iniciar a página
+        window.onload = fetchRecommendations;
+    </script>
 </body>
 </html>
