@@ -1,0 +1,168 @@
+name: "Deploy Infra-App qa"
+
+on:
+  pull_request:
+    branches: qa
+    types: [closed]
+
+
+jobs:
+  DeployApp:
+    runs-on: ubuntu-latest
+    environment:
+      name: qa
+    if: github.event.pull_request.merged == true
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Docker Version
+      run: docker --version
+
+    - name: Read Config Application
+      id: read_app_yaml
+      run: |
+          PIPELINE_NAME=$(awk '/application:/ {print $2}' application.yaml)
+          AWS_ACCOUNT_ID=$(awk '/accountid:/ {print $2}' application.yaml)
+          AWS_REGION=$(awk '/region:/ {print $2}' application.yaml)
+          echo "Pipeline Name is set to: $PIPELINE_NAME"
+          echo "PIPELINE_NAME=$PIPELINE_NAME" >> $GITHUB_ENV
+          echo "Account Id is set to: $AWS_ACCOUNT_ID"
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "Region Id is set to: $AWS_REGION"
+          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Check Destroy Flag
+      id: check_destroy
+      run: |
+          DESTROY_FLAG=$(awk '/destroy:/ {print $2}' config_destroy.yaml)
+          echo "Destroy flag is set to: $DESTROY_FLAG"
+          echo "DESTROY_FLAG=$DESTROY_FLAG" >> $GITHUB_ENV
+
+    - name: Login no Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v1
+    
+    - name: Criar Repositório ECR
+      if: env.DESTROY_FLAG == 'false'
+      run: |
+          echo "Verificando se o repositório ECR já existe..."
+          if aws ecr describe-repositories --repository-names ${{ env.PIPELINE_NAME }} > /homolog/null 2>&1; then
+            echo "Repositório já existe: ${{ env.PIPELINE_NAME }}"
+          else
+            echo "Create Repository: ${{ env.PIPELINE_NAME }}"
+            aws ecr create-repository --repository-name ${{ env.PIPELINE_NAME }}
+          fi
+
+    - name: Destroy Repository ECR
+      if: env.DESTROY_FLAG == 'true'
+      run: |
+          echo "Create Repository"
+          aws ecr delete-repository --repository-name ${{ env.PIPELINE_NAME }} --force 
+
+    - name: Build da Imagem para o ECR
+      if: env.DESTROY_FLAG == 'false'
+      run: |
+          cd app
+          echo "Docker Build"
+          docker build -t ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.PIPELINE_NAME }}:latest .
+ 
+    - name: Push da Imagem para o ECR
+      if: env.DESTROY_FLAG == 'false'
+      run: |
+          cd app
+          echo "Docker Push"
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.PIPELINE_NAME }}:latest
+
+    - name: Salvar Imagem no Ambiente para o DeployInfraestrutura
+      run: |
+          IMAGE_URI="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.PIPELINE_NAME }}:latest"
+          echo "$IMAGE_URI" > image_uri.env
+
+
+    - name: Upload do IMAGE_URI como Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: image-uri-artifact
+        path: image_uri.env
+
+
+  DeployInfra:
+    needs: [DeployApp]
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+    - name: checkout
+      uses:  actions/checkout@v2
+      with:
+          ref: qa
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+    
+    - name: Baixar Artifact com IMAGE_URI
+      uses: actions/download-artifact@v4
+      with:
+        name: image-uri-artifact
+    - name: Recuperar IMAGE_URI do DeployApp
+      run: |
+          if [ -f image_uri.env ]; then
+            IMAGE_URI=$(cat image_uri.env | tr -d '\r')
+            echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+            echo "Recuperado IMAGE_URI: $IMAGE_URI" 
+  
+          else
+            echo "Erro: Arquivo image_uri.env não encontrado!"
+            exit 1
+          fi
+
+          
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.6  # Escolha a versão desejada
+
+    - name: Check Destroy Flag
+      id: check_destroy
+      run: |
+          DESTROY_FLAG=$(awk '/destroy:/ {print $2}' config_destroy.yaml)
+          echo "Destroy flag is set to: $DESTROY_FLAG"
+          echo "DESTROY_FLAG=$DESTROY_FLAG" >> $GITHUB_ENV
+    - name: Terraform Format
+      id: fmt
+      run: | 
+          cd iac
+          terraform fmt -recursive -check
+    - name: Terraform Init
+      run: | 
+          cd iac
+          terraform init -backend-config=inventories/homolog/backend.tfvars
+    - name: Terraform Validate
+      run: |
+          cd iac
+          terraform  validate -no-color
+    - name: Terraform Plan
+      if: env.DESTROY_FLAG == 'false'
+      run: |
+          cd iac
+          terraform  plan -var="image=${{ env.IMAGE_URI }}" -var-file="inventories/homolog/terraform.tfvars"
+    - name: Terraform Apply
+      if: env.DESTROY_FLAG == 'false'
+      run: |
+          cd iac
+          terraform apply -var="image=${{ env.IMAGE_URI }}" -var-file="inventories/homolog/terraform.tfvars" --auto-approve
+
+    - name: Terraform Destroy
+      if: env.DESTROY_FLAG == 'true'
+      run: |
+          cd iac
+          terraform destroy -var="image=${{ env.IMAGE_URI }}" -var-file="inventories/homolog/terraform.tfvars" --auto-approve
