@@ -21,4 +21,6 @@ def recommend_articles(user_id: str) -> List[Dict[str, str]]:
         for rec in recomendations
     ]
 
+    print(recomendations)
+
     return recomendations

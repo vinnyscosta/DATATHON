@@ -11,10 +11,10 @@ class InteractionRequest(BaseModel):
     user_id: str
     history: str
     user_type: str
-    number_of_clicks: int
-    page_visits: int
-    scroll_percentage: float
-    time_on_page: int
+    number_of_clicks: str
+    page_visits: str
+    scroll_percentage: str
+    time_on_page: str
 
 
 # Rota para cadastrar uma nova interação

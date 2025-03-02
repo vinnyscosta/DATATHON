@@ -1,9 +1,17 @@
 import os
 import boto3
+import logging
 from boto3.dynamodb.conditions import Key
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
+
+# Configurar logging para exibir no terminal
+logging.basicConfig(
+    level=logging.INFO,  # Define o nível mínimo de log
+    format="%(asctime)s - %(levelname)s - %(message)s",  # Formato da mensagem
+    handlers=[logging.StreamHandler()]  # Exibir logs no terminal
+)
 
 load_dotenv()
 
@@ -102,11 +110,9 @@ class DynamoDBClient:
         items = response.get("Items", [])
 
         if items:
-            print(f"Encontrados {len(items)} registros para page={news_id}")
-            for item in items:
-                print(item)
+            return items[0]
         else:
-            print("Nenhum registro encontrado!")
+            logging.info("Nenhum registro encontrado!")
 
     @classmethod
     def get_user_history(cls, user_id: str) -> List[Dict[str, Any]]:
