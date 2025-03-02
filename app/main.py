@@ -15,7 +15,7 @@ app = FastAPI(
         "API para recomendação de notícias.\n\n"
         "**Integrantes:**\n\n"
         "- Luiz Carlos dos Santos - luizcarloos@gmail.com / RM356280\n"
-        "- Igor Bruno de Jesus da Silva - igor.bruno2012@gmail.com / RM356420\n"
+        "- Igor Bruno de Jesus da Silva - igor.bruno2012@gmail.com / RM356420\n"  # noqa
         "- Vinicus Gomes Costa - vinicius00.vc@gmail.com / RM355817\n"
         "- Elzo dos Santos Sousa - elzo.santos.sousa@gmail.com / RM356007\n"
         "- Fabiano Emiliano - fab.emiliano@gmail.com / RM354635\n"
