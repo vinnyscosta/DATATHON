@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-from app.routes import recommendations
+from app.routes import recommendations, users
 
 app = FastAPI()
 
@@ -16,7 +16,7 @@ app.add_middleware(
 
 # Incluir rotas
 # app.include_router(auth.router, prefix="/auth", tags=["Autenticação"])
-# app.include_router(users.router, prefix="/users", tags=["Usuários"])
+app.include_router(users.router, prefix="/users", tags=["Usuários"])
 # app.include_router(articles.router, prefix="/api", tags=["Notícias"])
 app.include_router(recommendations.router, prefix="/recommendations", tags=["Recomendações"])
 

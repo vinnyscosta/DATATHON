@@ -1,37 +1,53 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.models.database import get_db
-from app.models.models import User, UserHistory
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from typing import List
+from app.utils.AWS import DynamoDBClient  # Certifique-se de que o DynamoDBClient está importado corretamente
 
 router = APIRouter()
 
-# Criar usuário
-@router.post("/users")
-def create_user(username: str, db: Session = Depends(get_db)):
-    new_user = User(username=username)
-    db.add(new_user)
-    db.commit()
-    return {"message": "Usuário cadastrado!", "user_id": new_user.id}
 
-# Buscar usuário
-@router.get("/users/{user_id}")
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    return {"user_id": user.id, "username": user.username}
+# Pydantic model para validação dos dados recebidos na requisição
+class InteractionRequest(BaseModel):
+    user_id: str
+    history: str
+    user_type: str
+    number_of_clicks: int
+    page_visits: int
+    scroll_percentage: float
+    time_on_page: int
 
-# Atualizar histórico de leitura
-@router.post("/users/{user_id}/history")
-def update_user_history(user_id: int, article_id: int, db: Session = Depends(get_db)):
-    history_entry = UserHistory(user_id=user_id, article_id=article_id)
-    db.add(history_entry)
-    db.commit()
-    return {"message": "Histórico atualizado!"}
 
-# Buscar histórico de leitura
-@router.get("/users/{user_id}/history", response_model=List[int])
-def get_user_history(user_id: int, db: Session = Depends(get_db)):
-    history = db.query(UserHistory).filter(UserHistory.user_id == user_id).all()
-    return [entry.article_id for entry in history]
+# Rota para cadastrar uma nova interação
+@router.post("/add-interaction/")
+def add_interaction(request: InteractionRequest):
+    """
+    Cadastra uma nova interação do usuário no DynamoDB.
+    """
+    success = DynamoDBClient.add_user_interaction(
+        user_id=request.user_id,
+        history=request.history,
+        user_type=request.user_type,
+        number_of_clicks=request.number_of_clicks,
+        page_visits=request.page_visits,
+        scroll_percentage=request.scroll_percentage,
+        time_on_page=request.time_on_page,
+    )
+
+    if success:
+        return {"message": "Interação salva com sucesso!"}
+    else:
+        raise HTTPException(status_code=500, detail="Erro ao salvar interação.")
+
+
+# Rota para buscar o histórico de interações de um usuário
+@router.get("/user-history/{user_id}", response_model=List[dict])
+def get_user_history(user_id: str) -> List[dict]:
+    """
+    Busca o histórico de interações de um usuário.
+    """
+    history = DynamoDBClient.get_user_history(user_id)
+
+    if not history:
+        raise HTTPException(status_code=404, detail="Histórico não encontrado para o usuário.")
+
+    return history

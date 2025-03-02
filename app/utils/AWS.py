@@ -23,10 +23,10 @@ class S3Client:
     def get_s3_client(cls):
         return boto3.client(
             "s3",
-            # aws_access_key_id=cls.AWS_ACCESS_KEY_ID,
-            # aws_secret_access_key=cls.AWS_SECRET_ACCESS_KEY,
+            aws_access_key_id=cls.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=cls.AWS_SECRET_ACCESS_KEY,
             # aws_session_token=cls.AWS_SESSION_TOKEN,
-            # region_name=cls.AWS_REGION,
+            region_name=cls.AWS_REGION,
         )
 
     @classmethod
@@ -82,10 +82,10 @@ class DynamoDBClient:
     def get_dynamo_client(cls):
         return boto3.resource(
             "dynamodb",
-            # aws_access_key_id=AWS_ACCESS_KEY_ID,
-            # aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
             # aws_session_token=AWS_SESSION_TOKEN,
-            # region_name=AWS_REGION,
+            region_name=AWS_REGION,
         )
 
     @classmethod
@@ -94,12 +94,19 @@ class DynamoDBClient:
         dynamodb = cls.get_dynamo_client()
         table = dynamodb.Table("noticias_datathon")
 
-        try:
-            response = table.get_item(Key={"page": news_id})
-            return response.get("Item", None)  # Retorna `None` se não houver notícia  # noqa
-        except Exception as e:
-            print(f"Erro ao buscar notícia '{news_id}': {e}")
-            return None
+        response = table.query(
+            KeyConditionExpression="page = :page_value",
+            ExpressionAttributeValues={":page_value": news_id}
+        )
+
+        items = response.get("Items", [])
+
+        if items:
+            print(f"Encontrados {len(items)} registros para page={news_id}")
+            for item in items:
+                print(item)
+        else:
+            print("Nenhum registro encontrado!")
 
     @classmethod
     def get_user_history(cls, user_id: str) -> List[Dict[str, Any]]:

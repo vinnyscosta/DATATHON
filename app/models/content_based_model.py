@@ -51,7 +51,7 @@ class BasedContentRecomendation:
         self.index_to_news_id = None
         self.vectorizer = TfidfVectorizer(stop_words=stop_words)
         self.temp_dir = "temp_news"
-        self.model_dir = "model"
+        self.model_dir = "local_model"
 
         if not os.path.exists(self.temp_dir):
             os.makedirs(self.temp_dir)
@@ -62,14 +62,14 @@ class BasedContentRecomendation:
     def _download_files_from_s3(self) -> None:
         """Baixa os arquivos da pasta no S3 para a pasta local `temp_news/`."""
         if not self.bucket_name:
-            print("Nenhum bucket S3 configurado. Pulando download.")
+            logging.error("Nenhum bucket S3 configurado. Pulando download.")
             return
 
-        print(f"Baixando arquivos do S3: {self.s3_path}")
+        logging.error(f"Baixando arquivos do S3: {self.s3_path}")
         file_list = S3Client.list_files_s3(self.bucket_name, self.s3_path)
 
         if not file_list:
-            print("Nenhum arquivo encontrado no S3!")
+            logging.error("Nenhum arquivo encontrado no S3!")
             return
 
         for file_info in file_list:
@@ -79,6 +79,7 @@ class BasedContentRecomendation:
             S3Client.get_file_s3(self.bucket_name, file_key, save_path)
 
         print("Download concluído!")
+        logging.info("Download concluído!")
 
     def _concat_dfs(self) -> pd.DataFrame:
         """Concatena os arquivos CSV baixados em um único DataFrame."""
@@ -101,7 +102,7 @@ class BasedContentRecomendation:
 
         data_limite = self.df_news['issued'].max() - pd.Timedelta(days=self.dias_a_manter)  # noqa
         self.df_news = self.df_news[self.df_news['issued'] >= data_limite]
-        print("Data Minima para recomendação: ", data_limite)
+        logging.info("Data Minima para recomendação: ", data_limite)
         logging.info(f"Notícias recentes: {self.df_news.shape[0]}")
 
         self.df_news['news_content'] = self.df_news['title'] + ' ' + self.df_news['caption'] + ' ' + self.df_news['body']  # noqa
@@ -181,6 +182,8 @@ class BasedContentRecomendation:
             logging.error(f"Erro ao carregar o modelo: {e}")
             return None
 
+        logging.info("Modelo carregado na memória!")
+
         self.dias_a_manter = data.get('dias_mantidos')
         self.cosine_sim = data.get('cosine_sim')
         self.news_id_to_index = data.get('news_id_to_index')
@@ -190,12 +193,6 @@ class BasedContentRecomendation:
         if self.cosine_sim is None or self.news_id_to_index is None or self.index_to_news_id is None:  # noqa
             logging.error("Dados essenciais não encontrados no modelo carregado.")  # noqa
             return None
-
-        # Verificação adicional dos dados carregados
-        print(f"dias mantidos no modelo: {type(self.dias_a_manter)}")
-        print(f"cosine_sim: {type(self.cosine_sim)}")
-        print(f"news_id_to_index: {type(self.news_id_to_index)}")
-        print(f"index_to_news_id: {type(self.index_to_news_id)}")
 
         logging.info("Modelo carregado com sucesso!")
 
