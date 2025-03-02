@@ -23,7 +23,7 @@ app.include_router(recommendations.router, prefix="/recommendations", tags=["Rec
 
 @app.get("/")
 def root():
-    return {"message": "API rodando com SQLite!"}
+    return {"message": "API rodando!"}
 
 
 # Configuração de templates

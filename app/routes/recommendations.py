@@ -5,7 +5,7 @@ from app.services.recommendation_service import recommend_articles
 router = APIRouter()
 
 
-@router.get("/recommendations/{user_id}", response_model=List[Dict[str, Any]])
+@router.get("/user/{user_id}", response_model=List[Dict[str, Any]])
 def get_recommendations(user_id: str):
     recommendations = recommend_articles(user_id)
 
