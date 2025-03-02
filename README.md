@@ -53,6 +53,11 @@ API para recomendação de notícias utilizando FastAPI. O projeto implementa di
 |   |
 |   +---utils
 |   |   |   AWS.py
+|   |
++---notebooks_kaggle
+|   |   mlet-postech-fiap-datathon-g19-coldstart.ipynb
+|   |   mlet-postech-fiap-datathon-g19-history.ipynb
+|   |   mlet-postech-fiap-datathon-g19-update_s3.ipynb
 |
 ```
 
