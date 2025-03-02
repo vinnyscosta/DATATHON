@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List
-from app.utils.AWS import DynamoDBClient  # Certifique-se de que o DynamoDBClient está importado corretamente
+from app.utils.AWS import DynamoDBClient
+from app.routes.auth import verify_token
 
 router = APIRouter()
 
@@ -19,7 +20,7 @@ class InteractionRequest(BaseModel):
 
 # Rota para cadastrar uma nova interação
 @router.post("/add-interaction/")
-def add_interaction(request: InteractionRequest):
+def add_interaction(request: InteractionRequest, user: str = Depends(verify_token)):  # noqa
     """
     Cadastra uma nova interação do usuário no DynamoDB.
     """
@@ -36,18 +37,18 @@ def add_interaction(request: InteractionRequest):
     if success:
         return {"message": "Interação salva com sucesso!"}
     else:
-        raise HTTPException(status_code=500, detail="Erro ao salvar interação.")
+        raise HTTPException(status_code=500, detail="Erro ao salvar interação.")  # noqa
 
 
 # Rota para buscar o histórico de interações de um usuário
 @router.get("/user-history/{user_id}", response_model=List[dict])
-def get_user_history(user_id: str) -> List[dict]:
+def get_user_history(user_id: str, user: str = Depends(verify_token)) -> List[dict]:  # noqa
     """
     Busca o histórico de interações de um usuário.
     """
     history = DynamoDBClient.get_user_history(user_id)
 
     if not history:
-        raise HTTPException(status_code=404, detail="Histórico não encontrado para o usuário.")
+        raise HTTPException(status_code=404, detail="Histórico não encontrado para o usuário.")  # noqa
 
     return history

@@ -9,8 +9,6 @@ def recommend_articles(user_id: str) -> List[Dict[str, str]]:
     user_history = DynamoDBClient.get_user_history(user_id)
     user_history = pd.DataFrame(user_history)
 
-    print(user_history)
-
     if user_history.empty:
         return []
 
@@ -20,7 +18,5 @@ def recommend_articles(user_id: str) -> List[Dict[str, str]]:
         DynamoDBClient.get_news(rec)
         for rec in recomendations
     ]
-
-    print(recomendations)
 
     return recomendations

@@ -9,7 +9,10 @@ __pycache__/
 *$py.class
 
 # models
-# *.pkl
+*.pkl
+*/model
+local_model/
+model/
 
 # C extensions
 *.so

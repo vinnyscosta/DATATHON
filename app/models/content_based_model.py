@@ -27,7 +27,7 @@ def compress_similarity_matrix(cosine_sim, k=50):
     """Retorna apenas os k vizinhos mais similares para cada notícia."""
     compressed_sim = {}
     for i, row in enumerate(cosine_sim):
-        top_k_indices = np.argsort(row)[-k:]  # Pega os índices dos K mais similares
+        top_k_indices = np.argsort(row)[-k:]  # Pega os índices dos K mais similares  # noqa
         compressed_sim[i] = {idx: row[idx] for idx in top_k_indices}
 
     return compressed_sim

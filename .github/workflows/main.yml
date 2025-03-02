@@ -1,0 +1,32 @@
+name: vinicius.costa
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v2
+
+      - name: 📂 Sync files
+        uses: SamKirkland/FTP-Deploy-Action@4.3.3
+        with:
+          server: ${{ secrets.ftp_host }}
+          username: ${{ secrets.ftp_user }}
+          password: ${{ secrets.ftp_password }}
+          server-dir: /datathon/datathon-app/
+
+      - name: 🐳 Atualizando Docker
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.ssh_host }}
+          username: root
+          password: ${{ secrets.ssh_password }}
+          script: |
+            cd /home/tmscolab.com.br/datathon/datathon-app
+            docker-compose down
+            docker-compose up -d --build
